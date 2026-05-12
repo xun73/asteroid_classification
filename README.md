@@ -40,5 +40,5 @@ An interactive big-data exploration tool specifically designed for Earth Science
 - **Data Source**: [Minor Planet Center (MPC)](https://www.minorplanetcenter.net/)
 
 ## 👨‍🏫 作者 / Author
-**陳韋喨 (Wei-Liang Chen)** 台中市立惠文高中 地球科學老師  
+**吳秉勳 (Bing-Syun Wu)** 台中市立惠文高中 地球科學老師  
 *Earth Science Teacher, Taichung Municipal Hui-Wen High School, Taiwan.*
