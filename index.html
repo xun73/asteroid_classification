@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小行星軌道數據探究平台 - 惠文高中地科教學工具</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f8fafc; }
+        #loadingOverlay { display: none; background: rgba(0,0,0,0.8); }
+        .type-badge { padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: bold; color: white; display: inline-block; }
+        .subtype-badge { padding: 1px 7px; border-radius: 99px; font-size: 0.68rem; font-weight: 700; color: #334155; background: #e2e8f0; display: inline-block; margin: 4px 4px 0 0; }
+        #chart { cursor: crosshair; }
+        body.theme-dark { background-color: #020617; color: #e2e8f0; }
+        body.theme-dark header { background-color: #020617 !important; border-bottom: 1px solid #1f2937; }
+        body.theme-dark aside { background-color: #0b1220 !important; border-color: #1f2937 !important; color: #e2e8f0; }
+        body.theme-dark #chartSection { background-color: #05070c !important; }
+        body.theme-dark .bg-white { background-color: #0f172a !important; }
+        body.theme-dark .bg-slate-50 { background-color: #111827 !important; }
+        body.theme-dark .border, body.theme-dark .border-r, body.theme-dark .border-t, body.theme-dark .border-b,
+        body.theme-dark .border-slate-100, body.theme-dark .border-slate-200, body.theme-dark .border-slate-700 { border-color: #334155 !important; }
+        body.theme-dark .text-slate-900, body.theme-dark .text-slate-800, body.theme-dark .text-slate-700, body.theme-dark .text-slate-600 { color: #e2e8f0 !important; }
+        body.theme-dark .text-slate-500, body.theme-dark .text-slate-400 { color: #94a3b8 !important; }
+        body.theme-dark input, body.theme-dark select { background-color: #0f172a !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+        body.theme-dark button.bg-slate-100 { background-color: #1e293b !important; color: #e2e8f0 !important; }
+        body.theme-dark #searchInfoCard { background-color: #0f172a !important; border-color: #334155 !important; }
+        body.theme-dark .subtype-badge { background: #1e293b; color: #cbd5e1; }
+        #orbitPlanePanel { width: min(460px, calc(100vw - 2rem)); height: min(390px, calc(100vh - 8rem)); }
+        body.theme-dark #orbitPlanePanel { background-color: #0f172a !important; border-color: #334155 !important; color: #e2e8f0; }
+        @media (max-width: 760px) { #orbitPlanePanel { left: 0.75rem; right: 0.75rem; bottom: 0.75rem; width: auto; height: 340px; } }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .highlight-important { background-color: #fff7cc !important; border: 2px solid #facc15 !important; border-radius: 10px; padding: 6px; }
+
+        /* ── 拖曳上傳遮罩 ── */
+        #dragOverlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 60;
+            background: rgba(30, 64, 175, 0.82);
+            backdrop-filter: blur(6px);
+            flex-direction: column; align-items: center; justify-content: center;
+            color: white; pointer-events: none;
+        }
+        #dragOverlay.active { display: flex; }
+        #dragOverlay .drag-box {
+            border: 3px dashed rgba(255,255,255,0.75);
+            border-radius: 1.5rem; padding: 3rem 4.5rem; text-align: center;
+            animation: pulse-dash 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-dash {
+            0%,100% { border-color: rgba(255,255,255,0.6); box-shadow: 0 0 0 0 rgba(147,197,253,0); }
+            50%      { border-color: rgba(255,255,255,1);   box-shadow: 0 0 24px 6px rgba(147,197,253,0.35); }
+        }
+        body.drag-active #fileDropBtn { box-shadow: 0 0 0 3px rgba(96,165,250,0.7); }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+<!-- 拖曳上傳遮罩 -->
+<div id="dragOverlay">
+    <div class="drag-box">
+        <div style="font-size:4rem;line-height:1;margin-bottom:1rem;">☄️</div>
+        <p style="font-size:1.6rem;font-weight:900;margin-bottom:0.4rem;" data-i18n="drag_drop_title">放開以載入軌道檔</p>
+        <p style="font-size:0.9rem;opacity:0.8;" data-i18n="drag_drop_hint">支援 MPCORB.DAT / CometEls .txt 格式</p>
+    </div>
+</div>
+
+<div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center text-white">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+    <p class="text-xl font-bold" data-i18n="loading_title">數據處理中...</p>
+    <p id="progressText" class="text-sm mt-2 font-mono" data-i18n="loading_progress">正在解析軌道參數...</p>
+</div>
+
+<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <span class="text-2xl">☄️</span>
+        <h1 class="text-lg font-bold tracking-tight">
+            <span data-i18n="title">小行星軌道數據探究平台</span>
+            <span class="text-blue-400 font-normal text-sm ml-2" data-i18n="subtitle">小行星的軌道參數與分類</span>
+        </h1>
+    </div>
+    <div class="flex items-center gap-3">
+        <input type="file" id="fileInput" accept=".dat,.txt" class="hidden">
+        <button id="fileDropBtn" onclick="document.getElementById('fileInput').click()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-all active:scale-95" data-i18n="load_file" title="點擊選擇檔案，或將檔案拖曳至頁面任意位置">
+            載入軌道檔
+        </button>
+        <a href="https://www.minorplanetcenter.net/data" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-300 hover:text-blue-200 underline underline-offset-2 whitespace-nowrap" data-i18n="download_dat">
+            下載 MPCORB.DAT
+        </a>
+        <div id="dataStatus" class="bg-slate-800 px-3 py-1 rounded border border-slate-700 text-xs text-slate-400" data-i18n="data_not_loaded">數據未載入</div>
+        <button id="langToggleBtn" onclick="switchLang()"
+            class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs text-white transition-all active:scale-95">
+            🌐 EN
+        </button>
+    </div>
+</header><main class="flex-1 flex overflow-hidden">
+    <aside class="w-80 p-6 overflow-y-auto border-r bg-white shadow-inner flex flex-col gap-6">
+
+        <section class="order-1">
+            <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <span data-i18n="search_title">搜尋與定位</span>
+            </h3>
+            <div class="relative">
+                <input type="text" id="searchInput" oninput="liveSearch()" placeholder="搜尋..." class="w-full border-2 border-slate-100 p-2.5 rounded-xl text-sm focus:border-blue-500 transition-all outline-none">
+            </div>
+            <div id="searchInfoCard" class="hidden mt-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl shadow-sm"></div>
+        </section>
+
+        <details class="bg-slate-50 rounded-2xl border border-slate-100 order-4">
+            <summary class="cursor-pointer select-none p-4 font-bold text-slate-800" data-i18n="advanced_features">進階功能</summary>
+            <div class="px-4 pb-4 space-y-5">
+                <section>
+                    <h3 class="font-bold text-slate-800 mb-3 border-b pb-1" data-i18n="sci_tools">科學分析工具</h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <label for="showZones" class="text-sm text-slate-600 font-medium" data-i18n="show_zones">顯示行星軌道關係線</label>
+                        <input type="checkbox" id="showZones" checked onchange="drawChart()" class="w-5 h-5 accent-blue-600">
+                    </div>
+                    <div class="flex items-center justify-between mb-3">
+                        <label for="showOrbitPlane" class="text-sm text-slate-600 font-medium" data-i18n="show_orbit_plane">顯示軌道平面小畫面</label>
+                        <input type="checkbox" id="showOrbitPlane" onchange="drawChart()" class="w-5 h-5 accent-blue-600">
+                    </div>
+                    <div class="mt-4 border-t border-slate-200 pt-3">
+                        <h4 class="text-xs font-bold text-slate-700 mb-2 flex justify-between items-center">
+                            <span data-i18n="custom_resonance">✏️ 自訂動力學共振帶</span>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="showCustomRes" onchange="drawChart()" class="w-3 h-3 accent-pink-500">
+                                <label for="showCustomRes" class="text-[10px] text-slate-500" data-i18n="show_label">顯示</label>
+                            </div>
+                        </h4>
+                        <div class="space-y-2 bg-white p-2 rounded border border-slate-200">
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-slate-500 font-medium w-12 text-right" data-i18n="target_planet">目標行星</span>
+                                <select id="resPlanet" class="border p-1 rounded bg-slate-50 flex-1 outline-none focus:border-pink-400" onchange="drawChart()">
+                                    <option value="0.723" data-i18n-opt="venus">金星 (0.7 AU)</option>
+                                    <option value="1.000" data-i18n-opt="earth">地球 (1.0 AU)</option>
+                                    <option value="1.524" data-i18n-opt="mars">火星 (1.5 AU)</option>
+                                    <option value="5.203" selected data-i18n-opt="jupiter">木星 (5.2 AU)</option>
+                                    <option value="9.537" data-i18n-opt="saturn">土星 (9.5 AU)</option>
+                                    <option value="19.191" data-i18n-opt="uranus">天王星 (19.2 AU)</option>
+                                    <option value="30.07" data-i18n-opt="neptune">海王星 (30.1 AU)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-slate-500 font-medium w-12 text-right" data-i18n="orbit_count">公轉圈數</span>
+                                <input type="number" id="resAst" class="w-10 border p-1 rounded text-center outline-none focus:border-pink-400" value="3" min="1" oninput="drawChart()">
+                                <span class="text-slate-400 font-bold">:</span>
+                                <input type="number" id="resPlan" class="w-10 border p-1 rounded text-center outline-none focus:border-pink-400" value="1" min="1" oninput="drawChart()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 border-t border-slate-200 pt-3">
+                        <h4 class="text-xs font-bold text-slate-700 mb-2" data-i18n="display_count">顯示筆數</h4>
+                        <div class="space-y-2 bg-white p-2 rounded border border-slate-200">
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-slate-500 font-medium w-16 text-right" data-i18n="display_limit">顯示上限</span>
+                                <input type="number" id="maxDisplayPoints" value="50000" min="1000" step="1000" oninput="syncMaxDisplayPoints('number'); drawChart()" class="w-28 border p-1 rounded text-right outline-none focus:border-blue-400">
+                                <span class="text-slate-400" data-i18n="records_unit">筆</span>
+                            </div>
+                            <input type="range" id="maxDisplayPointsRange" min="1000" max="200000" step="1000" value="50000" oninput="syncMaxDisplayPoints('range'); drawChart()" class="w-full">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-3">
+                    <h3 class="font-bold text-slate-800 border-b pb-1" data-i18n="marker_color">標點顏色</h3>
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1" data-i18n="bg_theme">底色主題</label>
+                            <select id="themeMode" onchange="drawChart()" class="w-full border-2 border-slate-100 p-2 rounded-lg bg-white text-sm">
+                                <option value="light" selected data-i18n-opt="theme_light">白底</option>
+                                <option value="dark" data-i18n-opt="theme_dark">黑底</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1" data-i18n="color_mode">顏色模式</label>
+                            <select id="colorMode" onchange="updateColorControls(); drawChart()" class="w-full border-2 border-slate-100 p-2 rounded-lg bg-white text-sm">
+                                <option value="param" data-i18n-opt="color_param">依參數色階</option>
+                                <option value="single" selected data-i18n-opt="color_single">單一顏色</option>
+                            </select>
+                        </div>
+                        <div id="singleColorControls">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1" data-i18n="single_color">單一顏色</label>
+                            <input type="color" id="singleMarkerColor" value="#1e3a8a" onchange="drawChart()" class="w-full h-9 border border-slate-200 rounded bg-white">
+                        </div>
+                        <div id="paramColorControls" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1" data-i18n="color_param_label">著色參數</label>
+                                <select id="colorParam" class="highlight-important" onchange="resetColorRange(); drawChart()">
+                                    <option value="a" selected data-i18n-opt="param_a">半長軸 a (AU)</option>
+                                    <option value="e" data-i18n-opt="param_e">偏心率 e</option>
+                                    <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
+                                    <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
+                                    <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
+                                    <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 block mb-1" data-i18n="color_range">色階範圍</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="colorMin" onchange="drawChart()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最小">
+                                    <input type="number" id="colorMax" onchange="drawChart()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最大">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-100 pt-3">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2" data-i18n="marker_size">標點大小（圖表資料點）</label>
+                            <div class="flex items-center gap-3">
+                                <input type="range" id="chartPointSizeSlider" min="1" max="10" value="3" step="1" oninput="onChartPointSizeChange(this.value)" class="flex-1 accent-blue-600">
+                                <span id="chartPointSizeValue" class="text-sm font-bold text-slate-700 w-5 text-center">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </details>
+
+        <section class="space-y-4 order-2">
+            <h3 class="font-bold text-slate-800 border-b pb-1" data-i18n="axis_title">坐標物理量</h3>
+            <div class="grid grid-cols-1 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">X <span data-i18n="axis_label">軸</span></label>
+                    <select id="xAxis" class="highlight-important" onchange="handleAxisChange('x')">
+                        <option value="a" selected data-i18n-opt="param_a">半長軸 a (AU)</option>
+                        <option value="e" data-i18n-opt="param_e">偏心率 e</option>
+                        <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
+                        <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
+                        <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
+                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Y <span data-i18n="axis_label">軸</span></label>
+                    <select id="yAxis" class="highlight-important" onchange="handleAxisChange('y')">
+                        <option value="a" data-i18n-opt="param_a">半長軸 a (AU)</option>
+                        <option value="e" selected data-i18n-opt="param_e">偏心率 e</option>
+                        <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
+                        <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
+                        <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
+                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="order-3">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-800" data-i18n="range_control">數值範圍控制</h3>
+                <div class="flex gap-1">
+                    <button onclick="setView('inner')" class="text-[10px] bg-slate-100 px-2 py-1 rounded hover:bg-blue-100 transition-colors" data-i18n="inner_solar">內太陽系</button>
+                    <button onclick="setView('outer')" class="text-[10px] bg-slate-100 px-2 py-1 rounded hover:bg-blue-100 transition-colors" data-i18n="outer_solar">外太陽系</button>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div class="bg-slate-50 p-2 rounded-xl">
+                    <label class="text-[10px] font-bold text-slate-400 block mb-1" data-i18n="x_range">X 軸範圍 (水平)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="xMin" onchange="updateChartRange()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最小">
+                        <input type="number" id="xMax" onchange="updateChartRange()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最大">
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-2 rounded-xl">
+                    <label class="text-[10px] font-bold text-slate-400 block mb-1" data-i18n="y_range">Y 軸範圍 (垂直)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="yMin" onchange="updateChartRange()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最小">
+                        <input type="number" id="yMax" onchange="updateChartRange()" step="any" class="border p-1.5 rounded bg-white text-sm" placeholder="最大">
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-400 italic" data-i18n="zoom_tip">💡 提示：可直接在圖表上捲動縮放或拖曳軸線。</p>
+            </div>
+        </section>
+
+        <section class="order-5 text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3" data-i18n="footer_credit">
+            臺中市立惠文高中地球科學吳秉勳教師製作
+        </section>
+    </aside>
+
+    <section id="chartSection" class="flex-1 relative bg-white">
+        <div id="chart" class="w-full h-full"></div>
+        <div id="orbitPlanePanel" class="hidden absolute right-4 bottom-4 z-20 bg-white border border-slate-200 rounded-lg shadow-2xl overflow-hidden" style="resize: both; min-width: 420px; min-height: 320px;">
+            <div class="h-10 px-3 flex items-center justify-between border-b border-slate-200">
+                <div>
+                    <div class="text-sm font-bold text-slate-800" data-i18n="orbit_plane_title">軌道平面圖</div>
+                    <div id="orbitPlaneSubtitle" class="text-[10px] text-slate-500 leading-none" data-i18n="orbit_plane_hint">請先搜尋或點選一顆天體</div>
+                </div>
+                <button onclick="hideOrbitPlanePanel()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded px-2 py-1 text-xs" data-i18n="close_btn">關閉</button>
+            </div>
+            <div id="orbitPlaneChart" class="w-full" style="height: calc(100% - 40px);"></div>
+        </div>
+    </section>
+</main>
+
+<script>
+// ── 國際化 (i18n) 系統 ──
+window.currentLang = 'en';
+
+const I18N = {
+    zh: {
+        title: "小行星軌道數據探究平台",
+        subtitle: "小行星的軌道參數與分類",
+        page_title: "小行星軌道數據探究平台 - 惠文高中地科教學工具",
+        load_file: "載入軌道檔",
+        download_dat: "下載 MPCORB.DAT",
+        data_not_loaded: "數據未載入",
+        lang_btn: "🌐 EN",
+        loading_title: "數據處理中...",
+        loading_progress: "正在解析軌道參數...",
+        search_title: "搜尋與定位",
+        search_placeholder: "搜尋...",
+        advanced_features: "進階功能",
+        sci_tools: "科學分析工具",
+        show_zones: "顯示行星軌道關係線",
+        show_orbit_plane: "顯示軌道平面小畫面",
+        custom_resonance: "✏️ 自訂動力學共振帶",
+        show_label: "顯示",
+        target_planet: "目標行星",
+        orbit_count: "公轉圈數",
+        display_count: "顯示筆數",
+        display_limit: "顯示上限",
+        records_unit: "筆",
+        marker_color: "標點顏色",
+        bg_theme: "底色主題",
+        theme_light: "白底",
+        theme_dark: "黑底",
+        color_mode: "顏色模式",
+        color_param: "依參數色階",
+        color_single: "單一顏色",
+        single_color: "單一顏色",
+        color_param_label: "著色參數",
+        color_range: "色階範圍",
+        marker_size: "標點大小（圖表資料點）",
+        axis_title: "坐標物理量",
+        axis_label: "軸",
+        param_a: "半長軸 a (AU)",
+        param_e: "偏心率 e",
+        param_i: "軌道傾角 i (deg)",
+        param_H: "絕對星等 H",
+        param_q: "近日距 q (AU)",
+        param_Q: "遠日距 Q (AU)",
+        range_control: "數值範圍控制",
+        inner_solar: "內太陽系",
+        outer_solar: "外太陽系",
+        x_range: "X 軸範圍 (水平)",
+        y_range: "Y 軸範圍 (垂直)",
+        range_min: "最小",
+        range_max: "最大",
+        zoom_tip: "💡 提示：可直接在圖表上捲動縮放或拖曳軸線。",
+        venus: "金星 (0.7 AU)",
+        earth: "地球 (1.0 AU)",
+        mars: "火星 (1.5 AU)",
+        jupiter: "木星 (5.2 AU)",
+        saturn: "土星 (9.5 AU)",
+        uranus: "天王星 (19.2 AU)",
+        neptune: "海王星 (30.1 AU)",
+        footer_credit: "臺中市立惠文高中地球科學吳秉勳教師製作",
+        orbit_plane_title: "軌道平面圖",
+        orbit_plane_hint: "請先搜尋或點選一顆天體",
+        close_btn: "關閉",
+        main_class: "主分類",
+        sub_class: "次分類",
+        chart_title: "軌道數據分佈圖",
+        body_pos: "天體位置",
+        sun_label: "太陽",
+        perihelion: "近日點",
+        elliptical: "橢圓軌道",
+        hyperbolic: "雙曲線 / 拋物線軌道",
+        search_hint: "請先搜尋或點選一顆天體",
+        loaded_status: "{n} 顆已載入 / 顯示 {m} 顆",
+        records_loaded: "{n} 筆已載入 ({t})",
+        parse_fail: "解析失敗：檔案格式不支援",
+        hover_class: "主分類",
+        drag_drop_title: "放開以載入軌道檔",
+        drag_drop_hint: "支援 MPCORB.DAT / CometEls .txt 格式",
+    },
+    en: {
+        title: "Asteroid Orbit Explorer",
+        subtitle: "Orbital parameters and classification of asteroids",
+        page_title: "Asteroid Orbit Explorer - Huiwen High School Earth Science Tool",
+        load_file: "Load Orbit File",
+        download_dat: "Download MPCORB.DAT",
+        data_not_loaded: "No data loaded",
+        lang_btn: "🌐 中文",
+        loading_title: "Processing data...",
+        loading_progress: "Parsing orbital parameters...",
+        search_title: "Search & Locate",
+        search_placeholder: "Search...",
+        advanced_features: "Advanced Features",
+        sci_tools: "Scientific Analysis Tools",
+        show_zones: "Show planetary orbit relation lines",
+        show_orbit_plane: "Show orbit plane mini-view",
+        custom_resonance: "✏️ Custom Dynamical Resonance Band",
+        show_label: "Show",
+        target_planet: "Target Planet",
+        orbit_count: "Orbit Ratio",
+        display_count: "Display Count",
+        display_limit: "Display Limit",
+        records_unit: "records",
+        marker_color: "Marker Color",
+        bg_theme: "Background Theme",
+        theme_light: "Light",
+        theme_dark: "Dark",
+        color_mode: "Color Mode",
+        color_param: "Parameter Color Scale",
+        color_single: "Single Color",
+        single_color: "Single Color",
+        color_param_label: "Color Parameter",
+        color_range: "Color Scale Range",
+        marker_size: "Marker Size (chart data points)",
+        axis_title: "Axis Physical Quantities",
+        axis_label: "Axis",
+        param_a: "Semi-major Axis a (AU)",
+        param_e: "Eccentricity e",
+        param_i: "Inclination i (deg)",
+        param_H: "Absolute Magnitude H",
+        param_q: "Perihelion q (AU)",
+        param_Q: "Aphelion Q (AU)",
+        range_control: "Value Range Control",
+        inner_solar: "Inner Solar System",
+        outer_solar: "Outer Solar System",
+        x_range: "X-axis Range (horizontal)",
+        y_range: "Y-axis Range (vertical)",
+        range_min: "Min",
+        range_max: "Max",
+        zoom_tip: "💡 Tip: Scroll to zoom or drag the axes directly on the chart.",
+        venus: "Venus (0.7 AU)",
+        earth: "Earth (1.0 AU)",
+        mars: "Mars (1.5 AU)",
+        jupiter: "Jupiter (5.2 AU)",
+        saturn: "Saturn (9.5 AU)",
+        uranus: "Uranus (19.2 AU)",
+        neptune: "Neptune (30.1 AU)",
+        footer_credit: "Created by Teacher Bing-Syun Wu, Earth Science, Huiwen High School, Taichung City",
+        orbit_plane_title: "Orbit Plane View",
+        orbit_plane_hint: "Search or click a body first",
+        close_btn: "Close",
+        main_class: "Primary Class",
+        sub_class: "Sub-class",
+        chart_title: "Orbital Data Distribution",
+        body_pos: "Body Position",
+        sun_label: "Sun",
+        perihelion: "Perihelion",
+        elliptical: "Elliptical Orbit",
+        hyperbolic: "Hyperbolic / Parabolic Orbit",
+        search_hint: "Search or click a body first",
+        loaded_status: "{n} loaded / showing {m}",
+        records_loaded: "{n} records loaded ({t})",
+        parse_fail: "Parse failed: unsupported format",
+        hover_class: "Class",
+        drag_drop_title: "Drop to Load Orbit File",
+        drag_drop_hint: "Supports MPCORB.DAT / CometEls .txt format",
+    }
+};
+
+function T(key) { return (I18N[window.currentLang] || I18N.zh)[key] || key; }
+
+function switchLang() {
+    window.currentLang = (window.currentLang === 'zh') ? 'en' : 'zh';
+    applyI18n(window.currentLang);
+    drawChart();
+    if (searchResult) updateSearchCard(searchResult);
+}
+
+function applyI18n(lang) {
+    const t = I18N[lang];
+    document.title = t.page_title;
+    document.documentElement.lang = (lang === 'zh') ? 'zh-TW' : 'en';
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) el.textContent = t[key];
+    });
+
+    document.querySelectorAll('[data-i18n-opt]').forEach(opt => {
+        const key = opt.dataset.i18nOpt;
+        if (t[key] !== undefined) opt.textContent = t[key];
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = t.search_placeholder;
+
+    ['colorMin','colorMax','xMin','xMax','yMin','yMax'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.placeholder = id.endsWith('Min') ? t.range_min : t.range_max;
+    });
+
+    const btn = document.getElementById('langToggleBtn');
+    if (btn) btn.textContent = t.lang_btn;
+
+    if (!asteroidData) {
+        document.getElementById('dataStatus').textContent = t.data_not_loaded;
+    }
+    if (!searchResult) {
+        const sub = document.getElementById('orbitPlaneSubtitle');
+        if (sub) sub.textContent = t.orbit_plane_hint;
+    }
+}
+</script>
+
+<script>
+const SEARCH_STYLE = { starSize: 24, fontSize: 18, starColor: '#ef4444' };
+window.currentPointSize = 3;
+let asteroidData = null;
+let searchResult = null;
+let orbitPlaneViewState = null;
+let orbitPlaneResizeObserver = null;
+let searchTimeout = null;
+
+const config = {
+    responsive: true, displaylogo: false, scrollZoom: true,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'], displayModeBar: true
+};
+
+const MAJOR_PLANETS = [
+    { id: "Mercury", name: "水星", nameEn: "Mercury", a: 0.387, e: 0.205, i: 7.0,   H: -0.42, q: 0.307,  Q: 0.466,  type: "行星 (Planet)" },
+    { id: "Venus",   name: "金星", nameEn: "Venus",   a: 0.723, e: 0.007, i: 3.39,  H: -4.4,  q: 0.718,  Q: 0.728,  type: "行星 (Planet)" },
+    { id: "Earth",   name: "地球", nameEn: "Earth",   a: 1.000, e: 0.017, i: 0.0,   H: -4.86, q: 0.983,  Q: 1.017,  type: "行星 (Planet)" },
+    { id: "Mars",    name: "火星", nameEn: "Mars",    a: 1.524, e: 0.093, i: 1.85,  H: -1.5,  q: 1.381,  Q: 1.666,  type: "行星 (Planet)" },
+    { id: "Jupiter", name: "木星", nameEn: "Jupiter", a: 5.203, e: 0.048, i: 1.3,   H: -9.4,  q: 4.95,   Q: 5.45,   type: "行星 (Planet)" },
+    { id: "Saturn",  name: "土星", nameEn: "Saturn",  a: 9.537, e: 0.054, i: 2.49,  H: -8.88, q: 9.02,   Q: 10.05,  type: "行星 (Planet)" },
+    { id: "Uranus",  name: "天王星", nameEn: "Uranus",  a: 19.191, e: 0.047, i: 0.77, H: -7.19, q: 18.28, Q: 20.10, type: "行星 (Planet)" },
+    { id: "Neptune", name: "海王星", nameEn: "Neptune", a: 30.07, e: 0.009, i: 1.77, H: -6.87, q: 29.81, Q: 30.33, type: "行星 (Planet)" },
+    { id: "Pluto",   name: "冥王星", nameEn: "Pluto",   a: 39.48, e: 0.244, i: 17.16, H: -0.7, q: 29.66, Q: 49.31, type: "矮行星 (Dwarf Planet)" }
+];
+
+const AXIS_DEFAULTS = { a:{min:0,max:6}, e:{min:0,max:1}, i:{min:0,max:50}, H:{min:0,max:25}, q:{min:0,max:6}, Q:{min:0,max:10} };
+const POS = { id:[0,7], H:[8,13], M:[26,35], peri:[37,46], node:[48,57], i:[59,68], e:[70,79], a:[92,103], name:[166,194] };
+const ORBIT_AXIS_LABEL = { a:'a', q:'q', Q:'Q', i:'i' };
+
+const GUIDE_LINES = [
+    { value:1.90,  label:"木星9:2 / Hungaria",       labelEn:"Jupiter 9:2 / Hungaria",       color:"#0ea5e9", dash:"longdash", width:2 },
+    { value:2.06,  label:"木星4:1 / 柯克伍德空隙",   labelEn:"Jupiter 4:1 / Kirkwood Gap",   color:"#ef4444", dash:"dash",     width:1.5 },
+    { value:2.50,  label:"木星3:1 / 柯克伍德空隙",   labelEn:"Jupiter 3:1 / Kirkwood Gap",   color:"#ef4444", dash:"dash",     width:1.5 },
+    { value:2.82,  label:"木星5:2 / 柯克伍德空隙",   labelEn:"Jupiter 5:2 / Kirkwood Gap",   color:"#ef4444", dash:"dash",     width:1.5 },
+    { value:2.95,  label:"木星7:3 / 柯克伍德空隙",   labelEn:"Jupiter 7:3 / Kirkwood Gap",   color:"#f97316", dash:"dash",     width:1.5 },
+    { value:3.27,  label:"木星2:1 / 柯克伍德空隙",   labelEn:"Jupiter 2:1 / Kirkwood Gap",   color:"#ef4444", dash:"dash",     width:1.5 },
+    { value:3.97,  label:"木星3:2 / Hilda",           labelEn:"Jupiter 3:2 / Hilda",           color:"#0ea5e9", dash:"longdash", width:2 },
+    { value:5.20,  label:"木星1:1 / Trojan",          labelEn:"Jupiter 1:1 / Trojan",          color:"#0ea5e9", dash:"longdash", width:2 },
+    { value:39.45, label:"海王星2:3 / Plutino",       labelEn:"Neptune 2:3 / Plutino",         color:"#0ea5e9", dash:"longdash", width:2 },
+];
+
+const GROUP_RULES = [
+    { label:"阿波希利型 (Atira)",   labelEn:"Atira",                  color:"#9333ea", desc:"完全在地球軌道內側",                              descEn:"Entirely within Earth's orbit",                                      priority:100, test:o=>o.a<1&&o.Q<0.983 },
+    { label:"阿登型 (Aten)",        labelEn:"Aten",                   color:"#3b82f6", desc:"越地近地小行星，半長軸小於 1 AU",                  descEn:"Earth-crossing NEA with semi-major axis < 1 AU",                     priority:99,  test:o=>o.a<1&&o.Q>=0.983 },
+    { label:"阿波羅型 (Apollo)",    labelEn:"Apollo",                 color:"#ef4444", desc:"越地近地小行星，半長軸大於或等於 1 AU",            descEn:"Earth-crossing NEA with semi-major axis ≥ 1 AU",                     priority:98,  test:o=>o.a>=1&&o.q<=1.017 },
+    { label:"阿莫爾型 (Amor)",      labelEn:"Amor",                   color:"#f59e0b", desc:"接近地球但不穿越地球軌道",                          descEn:"Near-Earth asteroid approaching but not crossing Earth's orbit",      priority:97,  test:o=>o.q>1.017&&o.q<=1.3 },
+    { label:"火星穿越小行星",       labelEn:"Mars-crosser",           color:"#f97316", desc:"近日距落入火星軌道附近",                            descEn:"Perihelion within Mars' orbital zone",                               priority:83,  test:o=>o.q>1.3&&o.q<1.666&&o.a<3.2 },
+    { label:"匈牙利族 (Hungaria)",  labelEn:"Hungaria",               color:"#f43f5e", desc:"主帶內緣的高傾角族群",                              descEn:"High-inclination group at the inner edge of the main belt",          priority:90,  test:o=>o.a>=1.78&&o.a<=2.0&&o.e<=0.18&&o.i>=16&&o.i<=34 },
+    { label:"福後星族 (Phocaea)",   labelEn:"Phocaea",                color:"#d946ef", desc:"主帶內側高傾角族群",                                descEn:"High-inclination inner main belt group",                             priority:88,  test:o=>o.a>=2.25&&o.a<=2.5&&o.e>=0.05&&o.e<=0.35&&o.i>=18&&o.i<=32 },
+    { label:"帕拉斯族 (Pallas)",    labelEn:"Pallas",                 color:"#4f46e5", desc:"主帶中側的極高傾角族群",                            descEn:"Very high-inclination middle main belt group",                       priority:89,  test:o=>o.a>=2.5&&o.a<=2.82&&o.i>=25&&o.i<=36 },
+    { label:"漢莎族 (Hansa)",       labelEn:"Hansa",                  color:"#7c3aed", desc:"a 約 2.6 AU、i 約 20° 以上的帕拉斯區域高傾角族群", descEn:"High-inclination Pallas-region group around a~2.6 AU, i>18°",       priority:91,  test:o=>o.a>=2.55&&o.a<=2.72&&o.i>=18&&o.i<=26 },
+    { label:"花神星族 (Flora)",     labelEn:"Flora",                  color:"#22c55e", desc:"主帶內側常見低傾角族群",                            descEn:"Common low-inclination inner main belt family",                      priority:72,  test:o=>o.a>=2.15&&o.a<=2.35&&o.i<=8&&o.e<=0.2 },
+    { label:"灶神星族 (Vesta)",     labelEn:"Vesta",                  color:"#0f766e", desc:"灶神星附近的主帶內側族群",                          descEn:"Inner main belt family near Vesta",                                  priority:73,  test:o=>o.a>=2.26&&o.a<=2.48&&o.i>=5&&o.i<=8.5&&o.e<=0.16 },
+    { label:"妮莎族 (Nysa)",        labelEn:"Nysa",                   color:"#16a34a", desc:"主帶內側低傾角族群",                                descEn:"Low-inclination inner main belt family",                             priority:71,  test:o=>o.a>=2.38&&o.a<=2.50&&o.i<=5&&o.e<=0.25 },
+    { label:"瑪麗亞族 (Maria)",     labelEn:"Maria",                  color:"#65a30d", desc:"主帶中側中等傾角族群",                              descEn:"Medium-inclination middle main belt family",                         priority:68,  test:o=>o.a>=2.50&&o.a<=2.70&&o.i>=12&&o.i<=17 },
+    { label:"司理星族 (Koronis)",   labelEn:"Koronis",                color:"#fb923c", desc:"主帶外側低傾角岩石族群",                            descEn:"Low-inclination rocky outer main belt family",                       priority:74,  test:o=>o.a>=2.83&&o.a<=2.91&&o.i<=3.5 },
+    { label:"曙神星族 (Eos)",       labelEn:"Eos",                    color:"#84cc16", desc:"主帶外側重要大族群",                                descEn:"Major outer main belt family",                                       priority:75,  test:o=>o.a>=2.95&&o.a<=3.05&&o.i>=8&&o.i<=12 },
+    { label:"鴉女星族 (Themis)",    labelEn:"Themis",                 color:"#06b6d4", desc:"含水冰的主帶外側族群",                              descEn:"Water-ice-bearing outer main belt family",                           priority:76,  test:o=>o.a>=3.08&&o.a<=3.24&&o.i<=3 },
+    { label:"基貝利群 / Cybele group", labelEn:"Cybele group",        color:"#0891b2", desc:"2:1 木星共振外側、Hilda 群內側的外主帶動力學群",    descEn:"Outer main belt dynamical group between Jupiter 2:1 resonance and Hilda group", priority:82, test:o=>o.a>=3.27&&o.a<=3.70&&o.e<0.30&&o.i<30 },
+    { label:"希爾達群 (Hilda)",     labelEn:"Hilda",                  color:"#0ea5e9", desc:"與木星 3:2 平均運動共振",                           descEn:"In 3:2 mean-motion resonance with Jupiter",                          priority:80,  test:o=>o.a>=3.70&&o.a<=4.20 },
+    { label:"木星特洛伊",           labelEn:"Jupiter Trojans",        color:"#6366f1", desc:"位於木星 L4/L5 區域的共軌族群",                     descEn:"Co-orbital group at Jupiter's L4/L5 Lagrange points",                priority:81,  test:o=>o.a>=4.9&&o.a<=5.5 },
+    { label:"半人馬群 (Centaur)",   labelEn:"Centaur",                color:"#8b5cf6", desc:"木星與海王星之間的不穩定小天體",                    descEn:"Unstable small bodies between Jupiter and Neptune",                  priority:60,  test:o=>o.a>5.5&&o.q<30.1 },
+    { label:"古柏帶天體 (KBO)",     labelEn:"Kuiper Belt Object (KBO)", color:"#475569", desc:"海王星外側的小天體",                             descEn:"Small bodies beyond Neptune",                                        priority:58,  test:o=>o.a>=30&&o.a<50 },
+    { label:"離散盤天體 (SDO)",     labelEn:"Scattered Disc Object (SDO)", color:"#334155", desc:"海王星外側且離心率較大的小天體",             descEn:"High-eccentricity trans-Neptunian objects",                          priority:59,  test:o=>o.a>=30&&o.e>=0.25 },
+    { label:"內緣天體",             labelEn:"Inner-edge Object",      color:"#10b981", desc:"主帶內側邊界",                                      descEn:"Inner boundary of the main belt",                                    priority:20,  test:o=>o.a>=1.3&&o.a<2.0 },
+    { label:"主帶內側 (Inner MB)",  labelEn:"Inner Main Belt",        color:"#059669", desc:"2.0 ~ 2.5 AU",                                      descEn:"2.0 ~ 2.5 AU",                                                       priority:19,  test:o=>o.a>=2.0&&o.a<2.5 },
+    { label:"主帶中側 (Middle MB)", labelEn:"Middle Main Belt",       color:"#047857", desc:"2.5 ~ 2.82 AU",                                     descEn:"2.5 ~ 2.82 AU",                                                      priority:18,  test:o=>o.a>=2.5&&o.a<2.82 },
+    { label:"主帶外側 (Outer MB)",  labelEn:"Outer Main Belt",        color:"#065f46", desc:"2.82 ~ 3.27 AU",                                    descEn:"2.82 ~ 3.27 AU",                                                     priority:17,  test:o=>o.a>=2.82&&o.a<3.27 }
+];
+
+const ORBIT_REFERENCE_PLANETS = MAJOR_PLANETS.filter(p=>["Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"].includes(p.id));
+const ORBIT_PLANE_PLANETS     = MAJOR_PLANETS.filter(p=>["Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"].includes(p.id));
+
+function pName(planet) { return (window.currentLang==='en') ? planet.nameEn : planet.name; }
+
+function getHighVisibilityLines(xParam, yParam) {
+    const traces=[], annotations=[], shapes=[];
+    const showZones = document.getElementById('showZones').checked;
+    const showCustomRes = document.getElementById('showCustomRes').checked;
+    const theme = getThemePalette();
+    const makeLabel = (text,color) => ({ text, showarrow:false, font:{size:10,color:theme.labelText||color}, bgcolor:theme.labelBg, bordercolor:color, borderpad:3, opacity:0.95 });
+    const addAxisGuide = (axisName,value,label,color,opts={}) => {
+        const line = { color, width:opts.width||1, dash:opts.dash||'dot' };
+        const lb = makeLabel(label,color);
+        if (xParam===axisName) { shapes.push({type:'line',xref:'x',yref:'paper',x0:value,x1:value,y0:0,y1:1,line,layer:'below'}); annotations.push({...lb,xref:'x',yref:'paper',x:value,y:opts.labelY??0.88,textangle:-90,xanchor:'left',yanchor:'top'}); }
+        if (yParam===axisName) { shapes.push({type:'line',xref:'paper',yref:'y',x0:0,x1:1,y0:value,y1:value,line,layer:'below'}); annotations.push({...lb,xref:'paper',yref:'y',x:opts.labelX??0.96,y:value,xanchor:'right',yanchor:'middle'}); }
+    };
+    const addCurveAnnotation = (x,y,label,color) => annotations.push({...makeLabel(label,color),xref:'x',yref:'y',x,y,xanchor:'left',yanchor:'middle'});
+
+    if (showZones) {
+        GUIDE_LINES.forEach((g,idx) => {
+            const gl = (window.currentLang==='en') ? g.labelEn : g.label;
+            addAxisGuide('a',g.value,gl,g.color,{dash:g.dash,width:g.width,labelY:0.90,labelX:0.96});
+        });
+        ORBIT_REFERENCE_PLANETS.forEach((planet,idx) => {
+            const pn = pName(planet);
+            ['a','q','Q','i'].forEach(axisName => {
+                const isQ = axisName==='Q';
+                const guideColor = isQ ? '#fca5a5' : (theme.isDark?'#cbd5e1':'#475569');
+                addAxisGuide(axisName,planet[axisName],`${pn} ${ORBIT_AXIS_LABEL[axisName]}`,guideColor,{dash:isQ?'solid':'dot',width:axisName==='a'?1.2:(isQ?1.4:1),labelY:0.75,labelX:0.90-(idx%4)*0.055});
+            });
+        });
+        if ((xParam==='a'&&yParam==='e')||(xParam==='e'&&yParam==='a')) {
+            MAJOR_PLANETS.filter(p=>["Venus","Earth","Mars","Jupiter"].includes(p.id)).forEach(p => {
+                const ax_q=[],ey_q=[];
+                for(let v=Math.max(p.q,0.1);v<=100;v+=0.1){const eV=1-p.q/v;if(eV>=0&&eV<=1){ax_q.push(v);ey_q.push(eV);}}
+                traces.push({x:xParam==='a'?ax_q:ey_q,y:xParam==='a'?ey_q:ax_q,mode:'lines',line:{color:"#ef4444",width:1.2,opacity:0.42},hoverinfo:'skip'});
+                const ax_Q=[],ey_Q=[];
+                for(let v=0.1;v<=p.Q;v+=0.1){const eV=p.Q/v-1;if(eV>=0&&eV<=1){ax_Q.push(v);ey_Q.push(eV);}}
+                traces.push({x:xParam==='a'?ax_Q:ey_Q,y:xParam==='a'?ey_Q:ax_Q,mode:'lines',line:{color:"#fca5a5",width:1.2,opacity:0.55,dash:'solid'},hoverinfo:'skip'});
+                const pn=pName(p);
+                const qLA=Math.min(Math.max(p.q+0.55,1.0),5.4),qLE=1-p.q/qLA;
+                if(qLE>=0&&qLE<=1) addCurveAnnotation(xParam==='a'?qLA:qLE,xParam==='a'?qLE:qLA,`${pn} q`,'#ef4444');
+                const QLA=Math.max(Math.min(p.Q*0.78,5.4),0.4),QLE=p.Q/QLA-1;
+                if(QLE>=0&&QLE<=1) addCurveAnnotation(xParam==='a'?QLA:QLE,xParam==='a'?QLE:QLA,`${pn} Q`,'#fca5a5');
+            });
+        }
+    }
+    if (showCustomRes && (xParam==='a'||yParam==='a')) {
+        const N_ast=parseFloat(document.getElementById('resAst').value);
+        const N_plan=parseFloat(document.getElementById('resPlan').value);
+        const a_planet=parseFloat(document.getElementById('resPlanet').value);
+        if(N_ast>0&&N_plan>0){
+            const a_custom=a_planet*Math.pow(N_plan/N_ast,2/3);
+            const line={color:'#ec4899',width:2,dash:'solid'};
+            const customLabel=(window.currentLang==='en')?`Custom ${N_ast}:${N_plan}`:`自訂 ${N_ast}:${N_plan}`;
+            if(xParam==='a'){shapes.push({type:'line',xref:'x',yref:'paper',x0:a_custom,x1:a_custom,y0:0,y1:1,line,layer:'below'});annotations.push({x:a_custom,y:0.78,xref:'x',yref:'paper',text:customLabel,showarrow:false,font:{color:'#ec4899',size:10},bgcolor:'rgba(255,255,255,0.9)',textangle:-90,xanchor:'left',yanchor:'top'});}
+            if(yParam==='a'){shapes.push({type:'line',xref:'paper',yref:'y',x0:0,x1:1,y0:a_custom,y1:a_custom,line,layer:'below'});annotations.push({x:0.98,y:a_custom,xref:'paper',yref:'y',text:customLabel,showarrow:false,font:{color:'#ec4899',size:10},bgcolor:'rgba(255,255,255,0.9)',xanchor:'right'});}
+        }
+    }
+    return {traces,annotations,shapes};
+}
+
+function handleAxisChange(axis) {
+    const xVal=document.getElementById('xAxis').value, yVal=document.getElementById('yAxis').value;
+    if(axis==='x'||!axis){document.getElementById('xMin').value=AXIS_DEFAULTS[xVal].min;document.getElementById('xMax').value=AXIS_DEFAULTS[xVal].max;}
+    if(axis==='y'||!axis){document.getElementById('yMin').value=AXIS_DEFAULTS[yVal].min;document.getElementById('yMax').value=AXIS_DEFAULTS[yVal].max;}
+    drawChart();
+}
+
+function updateChartRange() {
+    Plotly.relayout('chart',{'xaxis.range':[parseFloat(document.getElementById('xMin').value),parseFloat(document.getElementById('xMax').value)],'yaxis.range':[parseFloat(document.getElementById('yMin').value),parseFloat(document.getElementById('yMax').value)]});
+}
+
+function setView(type) {
+    if(type==='inner'){document.getElementById('xMin').value=0;document.getElementById('xMax').value=6;document.getElementById('yMin').value=0;document.getElementById('yMax').value=1;}
+    else{document.getElementById('xMin').value=0;document.getElementById('xMax').value=50;document.getElementById('yMin').value=0;document.getElementById('yMax').value=1;}
+    updateChartRange();
+}
+
+function syncMaxDisplayPoints(source) {
+    const ni=document.getElementById('maxDisplayPoints'), ri=document.getElementById('maxDisplayPointsRange');
+    if(source==='number'){const s=Math.max(1000,Math.min(200000,parseInt(ni.value,10)||50000));ni.value=s;ri.value=s;return s;}
+    const s=parseInt(ri.value,10)||50000;ni.value=s;return s;
+}
+function getMaxDisplayPoints(){return syncMaxDisplayPoints('number');}
+
+function resetColorRange(){const cp=document.getElementById('colorParam').value;document.getElementById('colorMin').value=AXIS_DEFAULTS[cp].min;document.getElementById('colorMax').value=AXIS_DEFAULTS[cp].max;}
+function updateColorControls(){const m=document.getElementById('colorMode').value;document.getElementById('singleColorControls').classList.toggle('hidden',m!=='single');document.getElementById('paramColorControls').classList.toggle('hidden',m!=='param');}
+function onChartPointSizeChange(val){window.currentPointSize=parseInt(val,10);const l=document.getElementById('chartPointSizeValue');if(l)l.textContent=val;drawChart();}
+
+function getThemePalette() {
+    const mode=document.getElementById('themeMode').value;
+    if(mode==='dark') return {plotBg:'#05070c',paperBg:'#05070c',gridColor:'#243045',textColor:'#e2e8f0',axisLineColor:'#94a3b8',sectionBg:'#05070c',labelBg:'rgba(15,23,42,0.94)',labelText:'#f8fafc',isDark:true};
+    return {plotBg:'#ffffff',paperBg:'#ffffff',gridColor:'#f1f5f9',textColor:'#0f172a',axisLineColor:'#cbd5e1',sectionBg:'#ffffff',labelBg:'rgba(255,255,255,0.90)',labelText:null,isDark:false};
+}
+function applyPageTheme(theme){document.body.classList.toggle('theme-dark',theme.isDark);document.body.classList.toggle('theme-light',!theme.isDark);}
+
+function getMarkerStyle(colorValues) {
+    const mode=document.getElementById('colorMode').value, theme=getThemePalette(), sz=window.currentPointSize||3;
+    if(mode==='single') return {size:sz,color:document.getElementById('singleMarkerColor').value,opacity:0.55};
+    const cp=document.getElementById('colorParam').value, cmin=parseFloat(document.getElementById('colorMin').value), cmax=parseFloat(document.getElementById('colorMax').value);
+    return {size:sz,color:colorValues,colorscale:'Viridis',opacity:0.55,showscale:true,cmin:Number.isFinite(cmin)?cmin:AXIS_DEFAULTS[cp].min,cmax:Number.isFinite(cmax)?cmax:AXIS_DEFAULTS[cp].max,colorbar:{title:getLabel(cp),thickness:15,titlefont:{color:theme.textColor},tickfont:{color:theme.textColor}}};
+}
+
+function hideOrbitPlanePanel(){const t=document.getElementById('showOrbitPlane');if(t)t.checked=false;drawOrbitPlane(getThemePalette());}
+function degToRad(deg){return(deg||0)*Math.PI/180;}
+
+function normalizeSearchText(text){return(text||'').toString().toLowerCase().replace(/\s+/g,'').replace(/^0+(\d+[a-z])$/,'$1').replace(/^0+(\d+[a-z])\//,'$1/');}
+
+function makeCometSearchAliases(token,name){
+    const aliases=new Set([token,name]);
+    const fullText=`${token} ${name}`;
+    const cometName=fullText.match(/[cpdx]\/\d{4}\s*[a-z0-9]+(?:\s*\([^)]+\))?/i);
+    if(cometName)aliases.add(cometName[0]);
+    const periodic=fullText.match(/\b0*(\d+)p\b/i);
+    if(periodic){const pN=`${periodic[1]}P`;aliases.add(pN);const sN=fullText.match(/\b0*\d+p\/([^\s(]+)/i);if(sN){aliases.add(`${pN}/${sN[1]}`);aliases.add(sN[1]);}const par=fullText.match(/\(([^)]+)\)/);if(par)aliases.add(`${pN}/${par[1]}`);}
+    return Array.from(aliases).map(normalizeSearchText).filter(Boolean).join(' ');
+}
+
+function buildEllipseOrbitPoints(a,e,steps=360,rotationRad=0){
+    const x=[],y=[],b=a*Math.sqrt(Math.max(0,1-e*e)),cosR=Math.cos(rotationRad),sinR=Math.sin(rotationRad);
+    for(let k=0;k<=steps;k++){const E=(Math.PI*2*k)/steps,rX=a*(Math.cos(E)-e),rY=b*Math.sin(E);x.push(rX*cosR-rY*sinR);y.push(rX*sinR+rY*cosR);}
+    return{x,y};
+}
+
+function buildOpenConicOrbitPoints(q,e,maxR,steps=720,rotationRad=0){
+    const x=[],y=[],p=q*(1+e),limit=e>1?Math.acos(-1/e)-0.01:Math.PI-0.02,cosR=Math.cos(rotationRad),sinR=Math.sin(rotationRad);
+    for(let k=0;k<=steps;k++){const f=-limit+(2*limit*k)/steps,denom=1+e*Math.cos(f);if(denom<=0.0001){x.push(null);y.push(null);continue;}const r=p/denom;if(!Number.isFinite(r)||r>maxR){x.push(null);y.push(null);continue;}x.push(r*Math.cos(f)*cosR-r*Math.sin(f)*sinR);y.push(r*Math.cos(f)*sinR+r*Math.sin(f)*cosR);}
+    return{x,y};
+}
+
+function solveKeplerEllipse(M,e){let E=M;for(let i=0;i<8;i++){const d=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));E-=d;if(Math.abs(d)<1e-8)break;}return E;}
+function getOrbitLongitudeRad(item){return degToRad((item.node||0)+(item.peri||0));}
+
+function computePlanePosition(item){
+    if(!item||!Number.isFinite(item.q)||!Number.isFinite(item.e))return null;
+    const rot=getOrbitLongitudeRad(item),cosR=Math.cos(rot),sinR=Math.sin(rot);
+    if(item.e<1&&Number.isFinite(item.a)&&item.a>0&&Number.isFinite(item.M)){const E=solveKeplerEllipse(degToRad(item.M%360),item.e),rX=item.a*(Math.cos(E)-item.e),rY=item.a*Math.sqrt(Math.max(0,1-item.e*item.e))*Math.sin(E);return{x:rX*cosR-rY*sinR,y:rX*sinR+rY*cosR};}
+    return{x:item.q*cosR,y:item.q*sinR};
+}
+
+function createDatasetItem(index){return{a:asteroidData.a[index],e:asteroidData.e[index],i:asteroidData.i[index],H:asteroidData.H[index],q:asteroidData.q[index],Q:asteroidData.Q[index],name:asteroidData.name[index],id:asteroidData.id[index],M:asteroidData.M?.[index],peri:asteroidData.peri?.[index],node:asteroidData.node?.[index]};}
+
+function getOrbitPlaneExtent(item){
+    const pe=Math.max(...ORBIT_PLANE_PLANETS.map(p=>p.Q||p.a*(1+p.e)));
+    let oe=0;if(item&&Number.isFinite(item.e)&&Number.isFinite(item.q)){if(item.e<1&&Number.isFinite(item.Q))oe=item.Q;else oe=Math.max(pe,item.q*12);}
+    return Math.min(80,Math.max(pe,oe,6)*1.08);
+}
+
+function drawOrbitPlane(theme=getThemePalette()){
+    const panel=document.getElementById('orbitPlanePanel'),chart=document.getElementById('orbitPlaneChart'),subtitle=document.getElementById('orbitPlaneSubtitle'),toggle=document.getElementById('showOrbitPlane');
+    if(!panel||!chart||!toggle||!toggle.checked){if(panel)panel.classList.add('hidden');return;}
+    panel.classList.remove('hidden');
+    if(!orbitPlaneResizeObserver){orbitPlaneResizeObserver=new ResizeObserver(()=>Plotly.Plots.resize(chart));orbitPlaneResizeObserver.observe(panel);}
+    const extent=getOrbitPlaneExtent(searchResult),planetColor=theme.isDark?'#94a3b8':'#64748b',labelColor=theme.isDark?'#e2e8f0':'#334155',pointColor=theme.isDark?'rgba(125,211,252,0.42)':'rgba(37,99,235,0.34)';
+    const traces=[{x:[0],y:[0],mode:'markers+text',type:'scatter',name:'Sun',text:[T('sun_label')],textposition:'top center',hoverinfo:'text',marker:{size:10,color:'#f59e0b',line:{color:theme.isDark?'#fde68a':'#92400e',width:1}},textfont:{color:labelColor,size:11}}];
+    const planetLabelAngles={Mercury:0.35,Venus:1.0,Earth:1.65,Mars:2.25,Jupiter:2.85,Saturn:-2.65,Uranus:-2.05,Neptune:-1.45};
+    ORBIT_PLANE_PLANETS.forEach(planet=>{
+        const pts=buildEllipseOrbitPoints(planet.a,planet.e),lF=planetLabelAngles[planet.id]??0,lR=planet.a*(1-planet.e*planet.e)/(1+planet.e*Math.cos(lF)),pn=pName(planet);
+        traces.push({x:pts.x,y:pts.y,mode:'lines',type:'scatter',name:pn,hoverinfo:'name',line:{color:planetColor,width:planet.id==='Jupiter'?2:1,dash:planet.id==='Earth'?'dot':'solid'}});
+        traces.push({x:[lR*Math.cos(lF)],y:[lR*Math.sin(lF)],mode:'text',type:'scatter',text:[pn],hoverinfo:'skip',textfont:{color:labelColor,size:planet.id==='Jupiter'?11:9},showlegend:false});
+    });
+    if(asteroidData?.a?.length){
+        const totalCount=asteroidData.a.length,maxPoints=Math.min(getMaxDisplayPoints(),120000),step=Math.max(1,Math.ceil(totalCount/maxPoints)),px=[],py=[],hover=[],ids=[];
+        for(let j=0;j<totalCount;j+=step){const item=createDatasetItem(j),pos=computePlanePosition(item);if(!pos||Math.abs(pos.x)>extent||Math.abs(pos.y)>extent)continue;px.push(pos.x);py.push(pos.y);hover.push(`<b>${item.name}</b><br>a: ${formatAForDisplay(item)}<br>q: ${item.q.toFixed(6)} AU<br>e: ${item.e.toFixed(6)}`);ids.push(item.id);}
+        traces.push({x:px,y:py,text:hover,customdata:ids,mode:'markers',type:'scattergl',name:T('body_pos'),hoverinfo:'text',marker:{size:3,color:pointColor,opacity:0.75}});
+    }
+    if(searchResult&&Number.isFinite(searchResult.e)&&Number.isFinite(searchResult.q)){
+        const isOpen=searchResult.e>=1||!hasPhysicalSemimajorAxis(searchResult),rot=getOrbitLongitudeRad(searchResult);
+        const pts=isOpen?buildOpenConicOrbitPoints(searchResult.q,searchResult.e,extent*1.05,720,rot):buildEllipseOrbitPoints(searchResult.a,searchResult.e,360,rot);
+        const orbitLabel=isOpen?T('hyperbolic'):T('elliptical'),periLabel=T('perihelion');
+        traces.push({x:pts.x,y:pts.y,mode:'lines',type:'scattergl',name:searchResult.name,hoverinfo:'name',line:{color:'#ef4444',width:3}});
+        traces.push({x:[searchResult.q*Math.cos(rot)],y:[searchResult.q*Math.sin(rot)],mode:'markers+text',type:'scatter',name:periLabel,text:[periLabel],textposition:'bottom center',hovertemplate:`q: ${searchResult.q.toFixed(6)} AU<extra></extra>`,marker:{size:8,color:'#ef4444',line:{color:'#ffffff',width:1}},textfont:{color:'#ef4444',size:10}});
+        subtitle.textContent=`${searchResult.name}：${orbitLabel}`;
+    } else { subtitle.textContent=T('orbit_plane_hint'); }
+    const layout={margin:{t:12,r:16,b:34,l:38},showlegend:false,paper_bgcolor:theme.paperBg,plot_bgcolor:theme.plotBg,font:{family:'Noto Sans TC, sans-serif',color:theme.textColor},xaxis:{title:'AU',range:orbitPlaneViewState?.xRange||[-extent,extent],zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},yaxis:{title:'AU',range:orbitPlaneViewState?.yRange||[-extent,extent],scaleanchor:'x',scaleratio:1,zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},hovermode:'closest',dragmode:'pan',uirevision:'orbit-plane-static-view'};
+    Plotly.react(chart,traces,layout,{responsive:true,displaylogo:false,displayModeBar:true,scrollZoom:true,modeBarButtonsToRemove:['lasso2d','select2d']}).then(()=>{
+        if(!chart._hasOrbitClickListener){chart.on('plotly_click',data=>{if(data.points.length>0&&data.points[0].customdata)triggerSearchById(data.points[0].customdata);});chart._hasOrbitClickListener=true;}
+        if(!chart._hasOrbitRelayoutListener){chart.on('plotly_relayout',eventData=>{if(eventData['xaxis.range[0]']!==undefined&&eventData['yaxis.range[0]']!==undefined)orbitPlaneViewState={xRange:[eventData['xaxis.range[0]'],eventData['xaxis.range[1]']],yRange:[eventData['yaxis.range[0]'],eventData['yaxis.range[1]']]};});chart._hasOrbitRelayoutListener=true;}
+    });
+}
+
+function drawChart(){
+    const chartDiv=document.getElementById('chart'),chartSection=document.getElementById('chartSection');
+    const xParam=document.getElementById('xAxis').value,yParam=document.getElementById('yAxis').value,colorParam=document.getElementById('colorParam').value;
+    const theme=getThemePalette();applyPageTheme(theme);let traces=[];
+    if(asteroidData){
+        const totalCount=asteroidData.a.length,maxPoints=getMaxDisplayPoints(),step=Math.max(1,Math.ceil(totalCount/maxPoints));
+        const x=[],y=[],c=[],t=[],ids=[];
+        for(let j=0;j<asteroidData.a.length;j+=step){
+            x.push(asteroidData[xParam][j]);y.push(asteroidData[yParam][j]);c.push(asteroidData[colorParam][j]);
+            const cls=classifyAsteroid(asteroidData.a[j],asteroidData.q[j],asteroidData.Q[j],asteroidData.i[j],asteroidData.e[j]);
+            const itemView=createDatasetItem(j);
+            const secondary=cls.secondary.length?` / ${cls.secondary.map(g=>(window.currentLang==='en')?g.labelEn:g.label).join(', ')}`: '';
+            const primaryLabel=(window.currentLang==='en')?cls.primary.labelEn:cls.primary.label;
+            t.push(`<b>${asteroidData.name[j]}</b><br>${T('hover_class')}：${primaryLabel}${secondary}<br>a: ${formatAForDisplay(itemView)}<br>q: ${asteroidData.q[j].toFixed(6)} AU<br>e: ${asteroidData.e[j].toFixed(6)}<br>i: ${asteroidData.i[j].toFixed(1)}°`);
+            ids.push(asteroidData.id[j]);
+        }
+        traces.push({x,y,text:t,customdata:ids,mode:'markers',type:'scattergl',hoverinfo:'text',marker:getMarkerStyle(c)});
+        const statusTpl=T('loaded_status');
+        document.getElementById('dataStatus').innerText=statusTpl.replace('{n}',totalCount.toLocaleString()).replace('{m}',x.length.toLocaleString());
+    }
+    const helpers=getHighVisibilityLines(xParam,yParam);traces=traces.concat(helpers.traces);
+    if(searchResult){traces.push({x:[searchResult[xParam]],y:[searchResult[yParam]],text:[searchResult.name],mode:'markers+text',type:'scattergl',textposition:'top center',textfont:{size:SEARCH_STYLE.fontSize,color:SEARCH_STYLE.starColor,weight:'bold'},marker:{size:SEARCH_STYLE.starSize,symbol:'star',color:SEARCH_STYLE.starColor,line:{color:'white',width:2}}});}
+    const layout={title:{text:T('chart_title'),font:{size:14}},xaxis:{title:getLabel(xParam),range:[document.getElementById('xMin').value,document.getElementById('xMax').value],gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},yaxis:{title:getLabel(yParam),range:[document.getElementById('yMin').value,document.getElementById('yMax').value],gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},font:{family:'Noto Sans TC, sans-serif',color:theme.textColor},showlegend:false,plot_bgcolor:theme.plotBg,paper_bgcolor:theme.paperBg,annotations:helpers.annotations,shapes:helpers.shapes,margin:{t:50,r:40,b:60,l:60},hovermode:'closest',dragmode:'pan',uirevision:'orbit-plane-static-view'};
+    chartSection.style.backgroundColor=theme.sectionBg;drawOrbitPlane(theme);
+    Plotly.react(chartDiv,traces,layout,config).then(()=>{
+        if(!chartDiv._hasRelayoutListener){
+            chartDiv.on('plotly_relayout',eventData=>{if(eventData['xaxis.range[0]']!==undefined){document.getElementById('xMin').value=eventData['xaxis.range[0]'].toFixed(3);document.getElementById('xMax').value=eventData['xaxis.range[1]'].toFixed(3);}if(eventData['yaxis.range[0]']!==undefined){document.getElementById('yMin').value=eventData['yaxis.range[0]'].toFixed(3);document.getElementById('yMax').value=eventData['yaxis.range[1]'].toFixed(3);}});
+            chartDiv.on('plotly_click',data=>{if(data.points.length>0&&data.points[0].customdata)triggerSearchById(data.points[0].customdata);});
+            chartDiv._hasRelayoutListener=true;
+        }
+    });
+}
+
+function getLabel(v){
+    if(window.currentLang==='en') return {a:'Semi-major Axis a (AU)',e:'Eccentricity e',i:'Inclination i (deg)',H:'Absolute Magnitude H',q:'Perihelion q (AU)',Q:'Aphelion Q (AU)'}[v];
+    return {a:'半長軸 a (AU)',e:'偏心率 e',i:'軌道傾角 i (deg)',H:'絕對星等 H',q:'近日距 q (AU)',Q:'遠日距 Q (AU)'}[v];
+}
+
+function classifyAsteroid(a,q,Q,i,e=null){
+    const orbit={a,q,Q,i,e:e??Math.max(0,1-q/a)};
+    const matches=GROUP_RULES.filter(r=>r.test(orbit)).sort((l,r)=>r.priority-l.priority);
+    const fallback={label:"未歸入主要族群",labelEn:"Unclassified",color:"#64748b",desc:"目前規則未對應到明確的小行星族群",descEn:"No matching classification rule found",priority:0};
+    const primary=matches[0]||fallback;
+    const secondary=matches.slice(1).filter(r=>r.label!==primary.label).slice(0,3);
+    return{...primary,primary,secondary,matches};
+}
+
+function triggerSearchById(id){if(!asteroidData)return;const idx=asteroidData.id.indexOf(id);if(idx!==-1){searchResult=createDatasetItem(idx);updateSearchCard(searchResult);drawChart();}}
+
+function performSearch(){
+    const query=normalizeSearchText(document.getElementById('searchInput').value);
+    if(!query){searchResult=null;updateSearchCard(null);return drawChart();}
+    const planet=MAJOR_PLANETS.find(p=>normalizeSearchText(p.id)===query||normalizeSearchText(p.name)===query||normalizeSearchText(p.nameEn)===query);
+    if(planet){searchResult=planet;updateSearchCard(planet);return drawChart();}
+    if(asteroidData){const idx=asteroidData.searchKeys.findIndex(k=>k.includes(query));if(idx!==-1){searchResult=createDatasetItem(idx);updateSearchCard(searchResult);}}
+    drawChart();
+}
+
+function updateSearchCard(item){
+    const card=document.getElementById('searchInfoCard');
+    if(!item){card.classList.add('hidden');return;}
+    const cls=item.type?{label:item.type,labelEn:item.type,color:"#0f172a",desc:"行星參考點",descEn:"Planet reference",primary:{label:item.type,labelEn:item.type,color:"#0f172a",desc:"行星參考點",descEn:"Planet reference"},secondary:[]}:classifyAsteroid(item.a,item.q,item.Q,item.i,item.e);
+    const isEn=window.currentLang==='en';
+    const primaryLabel=isEn?cls.primary.labelEn:cls.primary.label;
+    const primaryDesc=isEn?cls.primary.descEn:cls.primary.desc;
+    const secondaryBadges=cls.secondary.length?`<div class="mt-2"><div class="text-[10px] font-bold text-slate-400 mb-1">${T('sub_class')}</div>${cls.secondary.map(g=>`<span class="subtype-badge">${isEn?g.labelEn:g.label}</span>`).join('')}</div>`:'';
+    card.innerHTML=`<h4 class="font-black text-slate-900 text-lg">${item.name}</h4><div class="text-[10px] font-bold text-slate-400 mt-1 mb-1">${T('main_class')}</div><span class="type-badge" style="background-color:${cls.primary.color}">${primaryLabel}</span>${secondaryBadges}<p class="text-[10px] text-slate-500 mt-2">${primaryDesc}</p><div class="grid grid-cols-2 gap-2 mt-3 p-2 bg-white rounded border text-xs font-mono"><div>a: ${formatAForDisplay(item)}</div><div>e: ${item.e.toFixed(6)}</div><div>q: ${item.q.toFixed(6)}</div><div>Q: ${item.Q.toFixed(6)}</div><div>i: ${item.i.toFixed(1)}°</div><div>H: ${item.H.toFixed(1)}</div></div>`;
+    card.classList.remove('hidden');
+}
+
+function liveSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(performSearch,300);}
+function isCometLikeId(id){return/^[CPDX]\//.test((id||'').trim());}
+function hasPhysicalSemimajorAxis(item){return!(isCometLikeId(item.id)&&Number.isFinite(item.e)&&item.e>=1);}
+function formatAForDisplay(item){return hasPhysicalSemimajorAxis(item)?`${item.a.toFixed(6)} AU`:'0.000000 AU';}
+function makeEmptyDataset(){return{a:[],e:[],i:[],H:[],q:[],Q:[],M:[],peri:[],node:[],id:[],name:[],searchKeys:[]};}
+
+function finalizeLoadedData(data,labelText){
+    asteroidData=data;
+    const tpl=T('records_loaded');
+    document.getElementById('dataStatus').innerText=tpl.replace('{n}',data.a.length.toLocaleString()).replace('{t}',labelText);
+    document.getElementById('loadingOverlay').style.display='none';
+    drawChart();
+}
+
+function parseMpcorbLines(lines){
+    const p=makeEmptyDataset();
+    lines.forEach(line=>{if(line.length>110){const a=parseFloat(line.substring(POS.a[0],POS.a[1])),e=parseFloat(line.substring(POS.e[0],POS.e[1]));if(!isNaN(a)&&!isNaN(e)){p.a.push(a);p.e.push(e);p.id.push(line.substring(POS.id[0],POS.id[1]).trim()||`MPC-${p.a.length}`);p.name.push(line.substring(POS.name[0],POS.name[1]).trim()||"unnamed");p.i.push(parseFloat(line.substring(POS.i[0],POS.i[1]))||0);p.H.push(parseFloat(line.substring(POS.H[0],POS.H[1]))||0);p.M.push(parseFloat(line.substring(POS.M[0],POS.M[1]))||0);p.peri.push(parseFloat(line.substring(POS.peri[0],POS.peri[1]))||0);p.node.push(parseFloat(line.substring(POS.node[0],POS.node[1]))||0);p.q.push(a*(1-e));p.Q.push(a*(1+e));p.searchKeys.push(normalizeSearchText(`${p.id[p.id.length-1]} ${p.name[p.name.length-1]}`));}}});
+    return p;
+}
+
+function parseCometElsLines(lines){
+    const p=makeEmptyDataset();
+    lines.forEach(line=>{
+        if(!line||!line.trim())return;const first=line.trim()[0];if(first==='#')return;
+        const parts=line.trim().split(/\s+/);if(parts.length<12)return;
+        const token=parts[0],q=parseFloat(parts[4]),e=parseFloat(parts[5]),iDeg=parseFloat(parts[8]),hLike=parseFloat(parts[10]);
+        if(!Number.isFinite(q)||!Number.isFinite(e)||!Number.isFinite(iDeg)||q<=0||e<=0)return;
+        let a=q/(1-e),Q=a*(1+e);
+        if(e>=1||!Number.isFinite(a)||a<=0)a=0;
+        if(!Number.isFinite(Q)||Q<=0)Q=Math.min(1000,q*(1+Math.max(e,1)));
+        a=Math.min(1000,Math.max(0,a));Q=Math.min(1000,Q);
+        const segments=line.trimEnd().split(/\s{2,}/);
+        const nameSeg=segments.find(seg=>/^(?:[CPDX]\/.+(?:\([^)]+\))?|\d+P\/.+)$/i.test(seg.trim()));
+        const prettyName=(nameSeg||token).trim();
+        p.a.push(a);p.e.push(e);p.i.push(iDeg);p.H.push(Number.isFinite(hLike)?hLike:12);p.q.push(q);p.Q.push(Q);p.M.push(0);p.peri.push(parseFloat(parts[6])||0);p.node.push(parseFloat(parts[7])||0);p.id.push(token);p.name.push(prettyName);p.searchKeys.push(makeCometSearchAliases(token,prettyName));
+    });
+    return p;
+}
+
+function parseMpcorbText(text){
+    const lines=text.split('\n');
+    const firstNonEmpty=lines.find(l=>l.trim().length>0)||'';
+    const isCometEls=firstNonEmpty.includes('/')||firstNonEmpty.startsWith('C')||firstNonEmpty.startsWith('P');
+    const parsed=isCometEls?parseCometElsLines(lines):parseMpcorbLines(lines);
+    if(!parsed.a.length){document.getElementById('dataStatus').innerText=T('parse_fail');document.getElementById('loadingOverlay').style.display='none';return;}
+    finalizeLoadedData(parsed,isCometEls?'CometEls':'MPCORB');
+}
+
+document.getElementById('fileInput').addEventListener('change',function(e){
+    const file=e.target.files[0];if(!file)return;
+    document.getElementById('loadingOverlay').style.display='flex';
+    const reader=new FileReader();
+    reader.onload=event=>parseMpcorbText(event.target.result);
+    reader.readAsText(file);
+});
+
+// ── 拖曳上傳 ──────────────────────────────────────────────
+(function(){
+    let dragCounter=0;
+
+    function processFile(file){
+        if(!file)return;
+        document.getElementById('loadingOverlay').style.display='flex';
+        const reader=new FileReader();
+        reader.onload=event=>parseMpcorbText(event.target.result);
+        reader.readAsText(file);
+    }
+
+    document.addEventListener('dragenter',function(e){
+        if(!e.dataTransfer.types.includes('Files'))return;
+        e.preventDefault();
+        if(++dragCounter===1){
+            document.getElementById('dragOverlay').classList.add('active');
+            document.body.classList.add('drag-active');
+        }
+    });
+    document.addEventListener('dragover',function(e){
+        if(!e.dataTransfer.types.includes('Files'))return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect='copy';
+    });
+    document.addEventListener('dragleave',function(){
+        if(--dragCounter<=0){
+            dragCounter=0;
+            document.getElementById('dragOverlay').classList.remove('active');
+            document.body.classList.remove('drag-active');
+        }
+    });
+    document.addEventListener('drop',function(e){
+        e.preventDefault();
+        dragCounter=0;
+        document.getElementById('dragOverlay').classList.remove('active');
+        document.body.classList.remove('drag-active');
+        processFile(e.dataTransfer.files[0]);
+    });
+})();
+
+window.onload=()=>{resetColorRange();updateColorControls();syncMaxDisplayPoints('number');handleAxisChange();applyI18n('en');};
+</script>
+
+</body>
+</html>
