@@ -132,13 +132,13 @@
                             <div class="flex items-center gap-2 text-xs">
                                 <span class="text-slate-500 font-medium w-12 text-right" data-i18n="target_planet">目標行星</span>
                                 <select id="resPlanet" class="border p-1 rounded bg-slate-50 flex-1 outline-none focus:border-pink-400" onchange="drawChart()">
-                                    <option value="0.723" data-i18n-opt="venus">金星 (0.7 AU)</option>
-                                    <option value="1.000" data-i18n-opt="earth">地球 (1.0 AU)</option>
-                                    <option value="1.524" data-i18n-opt="mars">火星 (1.5 AU)</option>
-                                    <option value="5.203" selected data-i18n-opt="jupiter">木星 (5.2 AU)</option>
-                                    <option value="9.537" data-i18n-opt="saturn">土星 (9.5 AU)</option>
-                                    <option value="19.191" data-i18n-opt="uranus">天王星 (19.2 AU)</option>
-                                    <option value="30.07" data-i18n-opt="neptune">海王星 (30.1 AU)</option>
+                                    <option value="0.723" data-i18n-opt="venus">金星 (0.7 au)</option>
+                                    <option value="1.000" data-i18n-opt="earth">地球 (1.0 au)</option>
+                                    <option value="1.524" data-i18n-opt="mars">火星 (1.5 au)</option>
+                                    <option value="5.203" selected data-i18n-opt="jupiter">木星 (5.2 au)</option>
+                                    <option value="9.537" data-i18n-opt="saturn">土星 (9.5 au)</option>
+                                    <option value="19.191" data-i18n-opt="uranus">天王星 (19.2 au)</option>
+                                    <option value="30.07" data-i18n-opt="neptune">海王星 (30.1 au)</option>
                                 </select>
                             </div>
                             <div class="flex items-center gap-2 text-xs">
@@ -187,12 +187,12 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 uppercase mb-1" data-i18n="color_param_label">著色參數</label>
                                 <select id="colorParam" class="highlight-important" onchange="resetColorRange(); drawChart()">
-                                    <option value="a" selected data-i18n-opt="param_a">半長軸 a (AU)</option>
+                                    <option value="a" selected data-i18n-opt="param_a">半長軸 a (au)</option>
                                     <option value="e" data-i18n-opt="param_e">偏心率 e</option>
                                     <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
                                     <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
-                                    <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
-                                    <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                                    <option value="q" data-i18n-opt="param_q">近日距 q (au)</option>
+                                    <option value="Q" data-i18n-opt="param_Q">遠日距 Q (au)</option>
                                 </select>
                             </div>
                             <div>
@@ -221,23 +221,23 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">X <span data-i18n="axis_label">軸</span></label>
                     <select id="xAxis" class="highlight-important" onchange="handleAxisChange('x')">
-                        <option value="a" selected data-i18n-opt="param_a">半長軸 a (AU)</option>
+                        <option value="a" selected data-i18n-opt="param_a">半長軸 a (au)</option>
                         <option value="e" data-i18n-opt="param_e">偏心率 e</option>
                         <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
                         <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
-                        <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
-                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                        <option value="q" data-i18n-opt="param_q">近日距 q (au)</option>
+                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (au)</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Y <span data-i18n="axis_label">軸</span></label>
                     <select id="yAxis" class="highlight-important" onchange="handleAxisChange('y')">
-                        <option value="a" data-i18n-opt="param_a">半長軸 a (AU)</option>
+                        <option value="a" data-i18n-opt="param_a">半長軸 a (au)</option>
                         <option value="e" selected data-i18n-opt="param_e">偏心率 e</option>
                         <option value="i" data-i18n-opt="param_i">軌道傾角 i (deg)</option>
                         <option value="H" data-i18n-opt="param_H">絕對星等 H</option>
-                        <option value="q" data-i18n-opt="param_q">近日距 q (AU)</option>
-                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (AU)</option>
+                        <option value="q" data-i18n-opt="param_q">近日距 q (au)</option>
+                        <option value="Q" data-i18n-opt="param_Q">遠日距 Q (au)</option>
                     </select>
                 </div>
             </div>
@@ -331,12 +331,12 @@ const I18N = {
         marker_size: "標點大小（圖表資料點）",
         axis_title: "坐標物理量",
         axis_label: "軸",
-        param_a: "半長軸 a (AU)",
+        param_a: "半長軸 a (au)",
         param_e: "偏心率 e",
         param_i: "軌道傾角 i (deg)",
         param_H: "絕對星等 H",
-        param_q: "近日距 q (AU)",
-        param_Q: "遠日距 Q (AU)",
+        param_q: "近日距 q (au)",
+        param_Q: "遠日距 Q (au)",
         range_control: "數值範圍控制",
         inner_solar: "內太陽系",
         outer_solar: "外太陽系",
@@ -345,13 +345,13 @@ const I18N = {
         range_min: "最小",
         range_max: "最大",
         zoom_tip: "💡 提示：可直接在圖表上捲動縮放或拖曳軸線。",
-        venus: "金星 (0.7 AU)",
-        earth: "地球 (1.0 AU)",
-        mars: "火星 (1.5 AU)",
-        jupiter: "木星 (5.2 AU)",
-        saturn: "土星 (9.5 AU)",
-        uranus: "天王星 (19.2 AU)",
-        neptune: "海王星 (30.1 AU)",
+        venus: "金星 (0.7 au)",
+        earth: "地球 (1.0 au)",
+        mars: "火星 (1.5 au)",
+        jupiter: "木星 (5.2 au)",
+        saturn: "土星 (9.5 au)",
+        uranus: "天王星 (19.2 au)",
+        neptune: "海王星 (30.1 au)",
         footer_credit: "臺中市立惠文高中地球科學吳秉勳教師製作",
         orbit_plane_title: "軌道平面圖",
         orbit_plane_hint: "請先搜尋或點選一顆天體",
@@ -408,12 +408,12 @@ const I18N = {
         marker_size: "Marker Size (chart data points)",
         axis_title: "Axis Physical Quantities",
         axis_label: "Axis",
-        param_a: "Semi-major Axis a (AU)",
+        param_a: "Semi-major Axis a (au)",
         param_e: "Eccentricity e",
         param_i: "Inclination i (deg)",
         param_H: "Absolute Magnitude H",
-        param_q: "Perihelion q (AU)",
-        param_Q: "Aphelion Q (AU)",
+        param_q: "Perihelion q (au)",
+        param_Q: "Aphelion Q (au)",
         range_control: "Value Range Control",
         inner_solar: "Inner Solar System",
         outer_solar: "Outer Solar System",
@@ -422,13 +422,13 @@ const I18N = {
         range_min: "Min",
         range_max: "Max",
         zoom_tip: "💡 Tip: Scroll to zoom or drag the axes directly on the chart.",
-        venus: "Venus (0.7 AU)",
-        earth: "Earth (1.0 AU)",
-        mars: "Mars (1.5 AU)",
-        jupiter: "Jupiter (5.2 AU)",
-        saturn: "Saturn (9.5 AU)",
-        uranus: "Uranus (19.2 AU)",
-        neptune: "Neptune (30.1 AU)",
+        venus: "Venus (0.7 au)",
+        earth: "Earth (1.0 au)",
+        mars: "Mars (1.5 au)",
+        jupiter: "Jupiter (5.2 au)",
+        saturn: "Saturn (9.5 au)",
+        uranus: "Uranus (19.2 au)",
+        neptune: "Neptune (30.1 au)",
         footer_credit: "Created by Teacher Bing-Syun Wu, Earth Science, Huiwen High School, Taichung City",
         orbit_plane_title: "Orbit Plane View",
         orbit_plane_hint: "Search or click a body first",
@@ -540,14 +540,14 @@ const GUIDE_LINES = [
 
 const GROUP_RULES = [
     { label:"阿波希利型 (Atira)",   labelEn:"Atira",                  color:"#9333ea", desc:"完全在地球軌道內側",                              descEn:"Entirely within Earth's orbit",                                      priority:100, test:o=>o.a<1&&o.Q<0.983 },
-    { label:"阿登型 (Aten)",        labelEn:"Aten",                   color:"#3b82f6", desc:"越地近地小行星，半長軸小於 1 AU",                  descEn:"Earth-crossing NEA with semi-major axis < 1 AU",                     priority:99,  test:o=>o.a<1&&o.Q>=0.983 },
-    { label:"阿波羅型 (Apollo)",    labelEn:"Apollo",                 color:"#ef4444", desc:"越地近地小行星，半長軸大於或等於 1 AU",            descEn:"Earth-crossing NEA with semi-major axis ≥ 1 AU",                     priority:98,  test:o=>o.a>=1&&o.q<=1.017 },
+    { label:"阿登型 (Aten)",        labelEn:"Aten",                   color:"#3b82f6", desc:"越地近地小行星，半長軸小於 1 au",                  descEn:"Earth-crossing NEA with semi-major axis < 1 au",                     priority:99,  test:o=>o.a<1&&o.Q>=0.983 },
+    { label:"阿波羅型 (Apollo)",    labelEn:"Apollo",                 color:"#ef4444", desc:"越地近地小行星，半長軸大於或等於 1 au",            descEn:"Earth-crossing NEA with semi-major axis ≥ 1 au",                     priority:98,  test:o=>o.a>=1&&o.q<=1.017 },
     { label:"阿莫爾型 (Amor)",      labelEn:"Amor",                   color:"#f59e0b", desc:"接近地球但不穿越地球軌道",                          descEn:"Near-Earth asteroid approaching but not crossing Earth's orbit",      priority:97,  test:o=>o.q>1.017&&o.q<=1.3 },
     { label:"火星穿越小行星",       labelEn:"Mars-crosser",           color:"#f97316", desc:"近日距落入火星軌道附近",                            descEn:"Perihelion within Mars' orbital zone",                               priority:83,  test:o=>o.q>1.3&&o.q<1.666&&o.a<3.2 },
     { label:"匈牙利族 (Hungaria)",  labelEn:"Hungaria",               color:"#f43f5e", desc:"主帶內緣的高傾角族群",                              descEn:"High-inclination group at the inner edge of the main belt",          priority:90,  test:o=>o.a>=1.78&&o.a<=2.0&&o.e<=0.18&&o.i>=16&&o.i<=34 },
     { label:"福後星族 (Phocaea)",   labelEn:"Phocaea",                color:"#d946ef", desc:"主帶內側高傾角族群",                                descEn:"High-inclination inner main belt group",                             priority:88,  test:o=>o.a>=2.25&&o.a<=2.5&&o.e>=0.05&&o.e<=0.35&&o.i>=18&&o.i<=32 },
     { label:"帕拉斯族 (Pallas)",    labelEn:"Pallas",                 color:"#4f46e5", desc:"主帶中側的極高傾角族群",                            descEn:"Very high-inclination middle main belt group",                       priority:89,  test:o=>o.a>=2.5&&o.a<=2.82&&o.i>=25&&o.i<=36 },
-    { label:"漢莎族 (Hansa)",       labelEn:"Hansa",                  color:"#7c3aed", desc:"a 約 2.6 AU、i 約 20° 以上的帕拉斯區域高傾角族群", descEn:"High-inclination Pallas-region group around a~2.6 AU, i>18°",       priority:91,  test:o=>o.a>=2.55&&o.a<=2.72&&o.i>=18&&o.i<=26 },
+    { label:"漢莎族 (Hansa)",       labelEn:"Hansa",                  color:"#7c3aed", desc:"a 約 2.6 au、i 約 20° 以上的帕拉斯區域高傾角族群", descEn:"High-inclination Pallas-region group around a~2.6 au, i>18°",       priority:91,  test:o=>o.a>=2.55&&o.a<=2.72&&o.i>=18&&o.i<=26 },
     { label:"花神星族 (Flora)",     labelEn:"Flora",                  color:"#22c55e", desc:"主帶內側常見低傾角族群",                            descEn:"Common low-inclination inner main belt family",                      priority:72,  test:o=>o.a>=2.15&&o.a<=2.35&&o.i<=8&&o.e<=0.2 },
     { label:"灶神星族 (Vesta)",     labelEn:"Vesta",                  color:"#0f766e", desc:"灶神星附近的主帶內側族群",                          descEn:"Inner main belt family near Vesta",                                  priority:73,  test:o=>o.a>=2.26&&o.a<=2.48&&o.i>=5&&o.i<=8.5&&o.e<=0.16 },
     { label:"妮莎族 (Nysa)",        labelEn:"Nysa",                   color:"#16a34a", desc:"主帶內側低傾角族群",                                descEn:"Low-inclination inner main belt family",                             priority:71,  test:o=>o.a>=2.38&&o.a<=2.50&&o.i<=5&&o.e<=0.25 },
@@ -562,9 +562,9 @@ const GROUP_RULES = [
     { label:"古柏帶天體 (KBO)",     labelEn:"Kuiper Belt Object (KBO)", color:"#475569", desc:"海王星外側的小天體",                             descEn:"Small bodies beyond Neptune",                                        priority:58,  test:o=>o.a>=30&&o.a<50 },
     { label:"離散盤天體 (SDO)",     labelEn:"Scattered Disc Object (SDO)", color:"#334155", desc:"海王星外側且離心率較大的小天體",             descEn:"High-eccentricity trans-Neptunian objects",                          priority:59,  test:o=>o.a>=30&&o.e>=0.25 },
     { label:"內緣天體",             labelEn:"Inner-edge Object",      color:"#10b981", desc:"主帶內側邊界",                                      descEn:"Inner boundary of the main belt",                                    priority:20,  test:o=>o.a>=1.3&&o.a<2.0 },
-    { label:"主帶內側 (Inner MB)",  labelEn:"Inner Main Belt",        color:"#059669", desc:"2.0 ~ 2.5 AU",                                      descEn:"2.0 ~ 2.5 AU",                                                       priority:19,  test:o=>o.a>=2.0&&o.a<2.5 },
-    { label:"主帶中側 (Middle MB)", labelEn:"Middle Main Belt",       color:"#047857", desc:"2.5 ~ 2.82 AU",                                     descEn:"2.5 ~ 2.82 AU",                                                      priority:18,  test:o=>o.a>=2.5&&o.a<2.82 },
-    { label:"主帶外側 (Outer MB)",  labelEn:"Outer Main Belt",        color:"#065f46", desc:"2.82 ~ 3.27 AU",                                    descEn:"2.82 ~ 3.27 AU",                                                     priority:17,  test:o=>o.a>=2.82&&o.a<3.27 }
+    { label:"主帶內側 (Inner MB)",  labelEn:"Inner Main Belt",        color:"#059669", desc:"2.0 ~ 2.5 au",                                      descEn:"2.0 ~ 2.5 au",                                                       priority:19,  test:o=>o.a>=2.0&&o.a<2.5 },
+    { label:"主帶中側 (Middle MB)", labelEn:"Middle Main Belt",       color:"#047857", desc:"2.5 ~ 2.82 au",                                     descEn:"2.5 ~ 2.82 au",                                                      priority:18,  test:o=>o.a>=2.5&&o.a<2.82 },
+    { label:"主帶外側 (Outer MB)",  labelEn:"Outer Main Belt",        color:"#065f46", desc:"2.82 ~ 3.27 au",                                    descEn:"2.82 ~ 3.27 au",                                                     priority:17,  test:o=>o.a>=2.82&&o.a<3.27 }
 ];
 
 const ORBIT_REFERENCE_PLANETS = MAJOR_PLANETS.filter(p=>["Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune"].includes(p.id));
@@ -732,7 +732,7 @@ function drawOrbitPlane(theme=getThemePalette()){
     });
     if(asteroidData?.a?.length){
         const totalCount=asteroidData.a.length,maxPoints=Math.min(getMaxDisplayPoints(),120000),step=Math.max(1,Math.ceil(totalCount/maxPoints)),px=[],py=[],hover=[],ids=[];
-        for(let j=0;j<totalCount;j+=step){const item=createDatasetItem(j),pos=computePlanePosition(item);if(!pos||Math.abs(pos.x)>extent||Math.abs(pos.y)>extent)continue;px.push(pos.x);py.push(pos.y);hover.push(`<b>${item.name}</b><br>a: ${formatAForDisplay(item)}<br>q: ${item.q.toFixed(6)} AU<br>e: ${item.e.toFixed(6)}`);ids.push(item.id);}
+        for(let j=0;j<totalCount;j+=step){const item=createDatasetItem(j),pos=computePlanePosition(item);if(!pos||Math.abs(pos.x)>extent||Math.abs(pos.y)>extent)continue;px.push(pos.x);py.push(pos.y);hover.push(`<b>${item.name}</b><br>a: ${formatAForDisplay(item)}<br>q: ${item.q.toFixed(6)} au<br>e: ${item.e.toFixed(6)}`);ids.push(item.id);}
         traces.push({x:px,y:py,text:hover,customdata:ids,mode:'markers',type:'scattergl',name:T('body_pos'),hoverinfo:'text',marker:{size:3,color:pointColor,opacity:0.75}});
     }
     if(searchResult&&Number.isFinite(searchResult.e)&&Number.isFinite(searchResult.q)){
@@ -740,10 +740,10 @@ function drawOrbitPlane(theme=getThemePalette()){
         const pts=isOpen?buildOpenConicOrbitPoints(searchResult.q,searchResult.e,extent*1.05,720,rot):buildEllipseOrbitPoints(searchResult.a,searchResult.e,360,rot);
         const orbitLabel=isOpen?T('hyperbolic'):T('elliptical'),periLabel=T('perihelion');
         traces.push({x:pts.x,y:pts.y,mode:'lines',type:'scattergl',name:searchResult.name,hoverinfo:'name',line:{color:'#ef4444',width:3}});
-        traces.push({x:[searchResult.q*Math.cos(rot)],y:[searchResult.q*Math.sin(rot)],mode:'markers+text',type:'scatter',name:periLabel,text:[periLabel],textposition:'bottom center',hovertemplate:`q: ${searchResult.q.toFixed(6)} AU<extra></extra>`,marker:{size:8,color:'#ef4444',line:{color:'#ffffff',width:1}},textfont:{color:'#ef4444',size:10}});
+        traces.push({x:[searchResult.q*Math.cos(rot)],y:[searchResult.q*Math.sin(rot)],mode:'markers+text',type:'scatter',name:periLabel,text:[periLabel],textposition:'bottom center',hovertemplate:`q: ${searchResult.q.toFixed(6)} au<extra></extra>`,marker:{size:8,color:'#ef4444',line:{color:'#ffffff',width:1}},textfont:{color:'#ef4444',size:10}});
         subtitle.textContent=`${searchResult.name}：${orbitLabel}`;
     } else { subtitle.textContent=T('orbit_plane_hint'); }
-    const layout={margin:{t:12,r:16,b:34,l:38},showlegend:false,paper_bgcolor:theme.paperBg,plot_bgcolor:theme.plotBg,font:{family:'Noto Sans TC, sans-serif',color:theme.textColor},xaxis:{title:'AU',range:orbitPlaneViewState?.xRange||[-extent,extent],zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},yaxis:{title:'AU',range:orbitPlaneViewState?.yRange||[-extent,extent],scaleanchor:'x',scaleratio:1,zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},hovermode:'closest',dragmode:'pan',uirevision:'orbit-plane-static-view'};
+    const layout={margin:{t:12,r:16,b:34,l:38},showlegend:false,paper_bgcolor:theme.paperBg,plot_bgcolor:theme.plotBg,font:{family:'Noto Sans TC, sans-serif',color:theme.textColor},xaxis:{title:'au',range:orbitPlaneViewState?.xRange||[-extent,extent],zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},yaxis:{title:'au',range:orbitPlaneViewState?.yRange||[-extent,extent],scaleanchor:'x',scaleratio:1,zeroline:true,zerolinecolor:theme.axisLineColor,gridcolor:theme.gridColor,linecolor:theme.axisLineColor,tickfont:{color:theme.textColor},titlefont:{color:theme.textColor}},hovermode:'closest',dragmode:'pan',uirevision:'orbit-plane-static-view'};
     Plotly.react(chart,traces,layout,{responsive:true,displaylogo:false,displayModeBar:true,scrollZoom:true,modeBarButtonsToRemove:['lasso2d','select2d']}).then(()=>{
         if(!chart._hasOrbitClickListener){chart.on('plotly_click',data=>{if(data.points.length>0&&data.points[0].customdata)triggerSearchById(data.points[0].customdata);});chart._hasOrbitClickListener=true;}
         if(!chart._hasOrbitRelayoutListener){chart.on('plotly_relayout',eventData=>{if(eventData['xaxis.range[0]']!==undefined&&eventData['yaxis.range[0]']!==undefined)orbitPlaneViewState={xRange:[eventData['xaxis.range[0]'],eventData['xaxis.range[1]']],yRange:[eventData['yaxis.range[0]'],eventData['yaxis.range[1]']]};});chart._hasOrbitRelayoutListener=true;}
@@ -763,7 +763,7 @@ function drawChart(){
             const itemView=createDatasetItem(j);
             const secondary=cls.secondary.length?` / ${cls.secondary.map(g=>(window.currentLang==='en')?g.labelEn:g.label).join(', ')}`: '';
             const primaryLabel=(window.currentLang==='en')?cls.primary.labelEn:cls.primary.label;
-            t.push(`<b>${asteroidData.name[j]}</b><br>${T('hover_class')}：${primaryLabel}${secondary}<br>a: ${formatAForDisplay(itemView)}<br>q: ${asteroidData.q[j].toFixed(6)} AU<br>e: ${asteroidData.e[j].toFixed(6)}<br>i: ${asteroidData.i[j].toFixed(1)}°`);
+            t.push(`<b>${asteroidData.name[j]}</b><br>${T('hover_class')}：${primaryLabel}${secondary}<br>a: ${formatAForDisplay(itemView)}<br>q: ${asteroidData.q[j].toFixed(6)} au<br>e: ${asteroidData.e[j].toFixed(6)}<br>i: ${asteroidData.i[j].toFixed(1)}°`);
             ids.push(asteroidData.id[j]);
         }
         traces.push({x,y,text:t,customdata:ids,mode:'markers',type:'scattergl',hoverinfo:'text',marker:getMarkerStyle(c)});
@@ -784,8 +784,8 @@ function drawChart(){
 }
 
 function getLabel(v){
-    if(window.currentLang==='en') return {a:'Semi-major Axis a (AU)',e:'Eccentricity e',i:'Inclination i (deg)',H:'Absolute Magnitude H',q:'Perihelion q (AU)',Q:'Aphelion Q (AU)'}[v];
-    return {a:'半長軸 a (AU)',e:'偏心率 e',i:'軌道傾角 i (deg)',H:'絕對星等 H',q:'近日距 q (AU)',Q:'遠日距 Q (AU)'}[v];
+    if(window.currentLang==='en') return {a:'Semi-major Axis a (au)',e:'Eccentricity e',i:'Inclination i (deg)',H:'Absolute Magnitude H',q:'Perihelion q (au)',Q:'Aphelion Q (au)'}[v];
+    return {a:'半長軸 a (au)',e:'偏心率 e',i:'軌道傾角 i (deg)',H:'絕對星等 H',q:'近日距 q (au)',Q:'遠日距 Q (au)'}[v];
 }
 
 function classifyAsteroid(a,q,Q,i,e=null){
@@ -823,7 +823,7 @@ function updateSearchCard(item){
 function liveSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(performSearch,300);}
 function isCometLikeId(id){return/^[CPDX]\//.test((id||'').trim());}
 function hasPhysicalSemimajorAxis(item){return!(isCometLikeId(item.id)&&Number.isFinite(item.e)&&item.e>=1);}
-function formatAForDisplay(item){return hasPhysicalSemimajorAxis(item)?`${item.a.toFixed(6)} AU`:'0.000000 AU';}
+function formatAForDisplay(item){return hasPhysicalSemimajorAxis(item)?`${item.a.toFixed(6)} au`:'0.000000 au';}
 function makeEmptyDataset(){return{a:[],e:[],i:[],H:[],q:[],Q:[],M:[],peri:[],node:[],id:[],name:[],searchKeys:[]};}
 
 function finalizeLoadedData(data,labelText){
